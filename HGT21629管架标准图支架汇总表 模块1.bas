@@ -1,0 +1,439 @@
+Attribute VB_Name = "模块1"
+Sub data()
+Dim dig, PATH
+Set dig = Application.FileDialog(msoFileDialogFilePicker)
+
+  With dig
+  .Filters.Add "Excel文件", "*.xlsm*"
+  .InitialFileName = ThisWorkbook.FullName
+  If .Show <> 0 Then
+   PATH = dig.SelectedItems(1)
+   On Error Resume Next
+     ThisWorkbook.Queries("路径").delete
+     ThisWorkbook.Queries.Add Name:="路径", Formula:="""" & PATH & """" & " meta [IsParameterQuery=true, Type=""Text"", IsParameterQueryRequired=true]"
+     ThisWorkbook.Queries("路径").refresh
+    End If
+  End With
+  
+End Sub
+Sub refresh()
+    ThisWorkbook.RefreshAll
+     MsgBox "请查看左下角状态栏，等候后台更新完毕"
+End Sub
+ Sub clear1()
+    Dim wsSource As Worksheet
+    Dim rng As Range
+    Dim col As Integer
+    Dim lastrow1 As Long
+    
+    col = 7
+    Set wsSource = ThisWorkbook.Sheets("查询表")
+    lastrow1 = wsSource.Cells(Rows.Count, col).End(xlUp).Row
+        For i = lastrow1 To 2 Step -1
+            If wsSource.Cells(i, col).Value = "" Then
+            wsSource.Rows(i).delete
+            End If
+        Next i
+        wsSource.Cells.Replace What:="null", Replacement:="", LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False _
+        
+End Sub
+Sub svs()
+ Dim wsSource As Worksheet
+ Dim i As Integer
+ Dim j As Integer
+ Dim lastrow As Integer
+ Dim currval As Variant
+ 
+ Set wsSource = ThisWorkbook.Sheets("查询表")
+   lastrow = wsSource.Cells(Rows.Count, 2).End(xlUp).Row
+   i = 2
+     While i <= lastrow
+      currval = wsSource.Cells(i, 2).Value & wsSource.Cells(i, 1).Value
+        j = 0
+     Do
+       j = j + 1
+        Loop Until wsSource.Cells(i + j, 2).Value & wsSource.Cells(i + j, 1).Value <> currval
+         wsSource.Rows(i + j).Insert
+                lastrow = lastrow + 1
+         i = i + j + 1
+         Wend
+         
+   End Sub
+Sub copysheettonewsheet()
+   Dim wsSource As Worksheet
+   Dim wsDest As Worksheet
+   Dim lastrow As Long
+   Dim lastcolumn As Long
+   Dim i As Long
+   Dim j As Long
+   
+   Set wsSource = ThisWorkbook.Sheets("查询表")
+   Set wsDest = ThisWorkbook.Sheets("零件表")
+   lastrow = wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
+   lastcolumn = wsSource.Cells(1, wsSource.Columns.Count).End(xlToLeft).Column
+   wsDest.Cells.ClearContents
+        For i = 1 To lastrow
+        For j = 1 To lastcolumn
+            wsDest.Cells(i, j).Value = wsSource.Cells(i, j).Value
+        Next j
+    Next i
+    wsDest.Columns.AutoFit
+    
+   End Sub
+Sub deletecolumn()
+Dim wsDest As Worksheet
+Dim rngs As Range
+
+  Set wsDest = ThisWorkbook.Sheets("零件表")
+  wsDest.Columns("B:C").delete
+  Set rngs = wsDest.Range("A2:A1000")
+  rngs.ClearContents
+  wsDest.Columns.AutoFit
+  
+End Sub
+Sub delete2()
+    Dim wsDest As Worksheet
+    Dim rng As Range
+    Dim col As Integer
+    Dim lastrow1 As Long
+    
+    col = 2
+    Set wsDest = ThisWorkbook.Sheets("零件表")
+    lastrow1 = wsDest.Cells(Rows.Count, col).End(xlUp).Row
+        For i = lastrow1 To 2 Step -1
+            If wsDest.Cells(i, col).Value = "" Then
+            wsDest.Rows(i).delete
+            End If
+        Next i
+        
+End Sub
+Sub sum()
+    Dim arr, brr(1 To 10000, 1 To 14)
+    Dim sht As Worksheet
+    Dim d As Object
+    
+      Set d = CreateObject("scripting.dictionary")
+      Set wsS = ThisWorkbook.Sheets("汇总表")
+      Set rngs = wsS.Range("A2:P1000")
+      rngs.ClearContents
+      For Each sht In Worksheets
+        If sht.Name = "零件表" Then
+            arr = sht.[a1].CurrentRegion
+            For i = 2 To UBound(arr, 1)
+                okey = arr(i, 2) & arr(i, 3) & arr(i, 8) & arr(i, 14)
+                If Not d.Exists(okey) Then
+                    k = k + 1
+                    d(okey) = k
+                    For j = 1 To 14
+                        brr(k, j) = arr(i, j)
+                    Next j
+                Else
+                    r = d(okey)
+                    brr(r, 5) = brr(r, 5) + arr(i, 5)
+                End If
+            Next i
+        End If
+    Next
+    wsS.[a2].Resize(k, 14) = brr
+    
+End Sub
+Sub clearnull()
+Cells.Replace What:="null", Replacement:="", LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False _
+   
+End Sub
+Sub matchspec()
+ Dim ws1 As Worksheet
+ Dim ws2 As Worksheet
+ Dim lastrow1 As Long
+ Dim lastrow2 As Long
+ Dim i As Long
+ Dim j As Long
+ Dim spec1 As String
+ Dim spec2 As String
+ 
+    Set ws1 = ThisWorkbook.Sheets("汇总表")
+    Set ws2 = ThisWorkbook.Sheets("材料库")
+    lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+    lastrow2 = ws2.Cells(ws2.Rows.Count, "B").End(xlUp).Row
+    For i = 2 To lastrow1
+      spec1 = ws1.Cells(i, 2).Value & ws1.Cells(i, 3).Value & ws1.Cells(i, 8).Value
+    For j = 2 To lastrow2
+      spec2 = ws2.Cells(j, 2).Value & ws2.Cells(j, 3).Value & ws2.Cells(j, 8).Value
+      If spec1 = spec2 Then
+        ws1.Cells(i, 11).Value = ws1.Cells(i, 14).Value & " " & ws2.Cells(j, 11).Value
+        ws1.Cells(i, 9).Value = ws2.Cells(j, 9).Value
+        ws1.Cells(i, 10).Value = ws1.Cells(i, 9).Value * ws1.Cells(i, 5).Value
+        ws1.Cells(i, 15).Value = ws2.Cells(j, 15).Value
+        ws1.Cells(i, 16).Value = ws2.Cells(j, 15).Value * ws1.Cells(i, 5).Value
+            Exit For
+       End If
+      Next j
+     Next i
+     
+End Sub
+Sub hgt21629()
+ Dim ws1 As Worksheet
+ Dim ws2 As Worksheet
+ Dim lastrow1 As Long
+ Dim lastrow2 As Long
+ Dim i As Long
+ Dim j As Long
+ Dim spec1 As String
+ Dim spec2 As String
+ 
+   Set ws1 = ThisWorkbook.Sheets("汇总表")
+   Set ws2 = ThisWorkbook.Sheets("材料库")
+   lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+   lastrow2 = ws2.Cells(ws2.Rows.Count, "B").End(xlUp).Row
+   For i = 2 To lastrow1
+   For j = 2 To lastrow2
+      If ws1.Cells(i, 11).Value = "" And ws1.Cells(i, 2).Value <> "" Then
+      ws1.Cells(i, 11).Value = ws1.Cells(i, 14).Value & " " & "HG/T 21629"
+             Exit For
+     End If
+    Next j
+   Next i
+   
+ End Sub
+ Sub MultiSort()
+ Dim sht As Worksheet
+ Set sht = ThisWorkbook.Sheets("汇总表")
+ 
+   With sht.Sort
+    .SortFields.Clear
+    .SetRange sht.[A1:P1000]
+    .SortFields.Add Key:=sht.[b1], SortOn:=xlSortOnValues, Order:=xlAscending
+    .SortFields.Add Key:=sht.[N1], SortOn:=xlSortOnValues, Order:=xlDescending
+    .SortFields.Add Key:=sht.[I1], SortOn:=xlSortOnValues, Order:=xlDescending
+    .Header = xlYes
+    .Apply
+  End With
+  
+End Sub
+Sub subtotal()
+ Dim i As Integer
+ Dim j As Integer
+ Dim lastrow As Integer
+ Dim currval As Variant
+ Dim sht As Worksheet
+ Set sht = ThisWorkbook.Sheets("汇总表")
+ 
+ With sht
+   lastrow = sht.Cells(Rows.Count, 2).End(xlUp).Row
+   i = 2
+     While i <= lastrow
+      currval = sht.Cells(i, 2).Value & sht.Cells(i, 14).Value
+        j = 0
+     Do
+       j = j + 1
+        Loop Until sht.Cells(i + j, 2).Value & sht.Cells(i + j, 14).Value <> currval
+         sht.Rows(i + j).Insert
+         sht.Cells(i + j, 2).Value = "小 计"
+         sht.Cells(i + j, 8).Value = sht.Cells(i, 8).Value
+         sht.Cells(i + j, 10).FormulaR1C1 = "=SUM(R[-" & j & "]C:R[-1]C)"
+         sht.Cells(i + j, 10) = sht.Cells(i + j, 10)
+         sht.Cells(i + j, 5).FormulaR1C1 = "=SUM(R[-" & j & "]C:R[-1]C)"
+         sht.Cells(i + j, 5) = sht.Cells(i + j, 5)
+         lastrow = lastrow + 1
+         i = i + j + 1
+         Wend
+       End With
+       
+   End Sub
+Sub insertrowsloop()
+ Dim ws1 As Worksheet
+ Dim lastrow1 As Long
+ Dim i As Long
+ 
+   Set ws1 = ThisWorkbook.Sheets("汇总表")
+   lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+   For i = lastrow1 To 2 Step -1
+      If ws1.Cells(i, 2).Value = "小 计" Then
+        ws1.Rows(i + 1).Insert shift:=xlDown
+      End If
+   Next i
+   ws1.Cells.Replace What:="null", Replacement:="", LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False _
+        
+        
+        
+ End Sub
+  Sub deletezero1()
+    Dim wsSource As Worksheet
+    Dim rng As Range
+    Dim col As Integer
+    Dim lastrow1 As Long
+    
+    col = 5
+    Set wsSource = ThisWorkbook.Sheets("汇总表")
+    lastrow1 = wsSource.Cells(Rows.Count, col).End(xlUp).Row
+        For i = lastrow1 To 2 Step -1
+            If wsSource.Cells(i, col).Value = "0" Then
+            wsSource.Rows(i).delete
+            End If
+        Next i
+        wsSource.Cells.Replace What:="null", Replacement:="", LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False _
+        
+        wsSource.Columns.AutoFit
+        
+End Sub
+Sub copysheettonewsheet2()
+   Dim wsSource As Worksheet
+   Dim wsDest As Worksheet
+   Dim lastrow As Long
+   Dim lastcolumn As Long
+   Dim i As Long
+   Dim j As Long
+   
+   Set wsSource = ThisWorkbook.Sheets("查询表")
+   Set wsDest = ThisWorkbook.Sheets("单个支架表")
+   lastrow = wsSource.Cells(wsSource.Rows.Count, "A").End(xlUp).Row
+   lastcolumn = wsSource.Cells(1, wsSource.Columns.Count).End(xlToLeft).Column
+   wsDest.Cells.ClearContents
+        For i = 1 To lastrow
+        For j = 1 To lastcolumn
+            wsDest.Cells(i, j).Value = wsSource.Cells(i, j).Value
+        Next j
+    Next i
+    
+   End Sub
+   Sub titiles()
+    Dim ws As Worksheet
+    
+    For Each ws In ThisWorkbook.Worksheets
+    If ws.Name = "汇总表" Then
+     ws.Range("A1").Value = "序号"
+     ws.Range("B1").Value = "名称及编码"
+     ws.Range("C1").Value = "规格"
+     ws.Range("D1").Value = "等级"
+     ws.Range("E1").Value = "设计量"
+     ws.Range("F1").Value = "设计裕量"
+     ws.Range("G1").Value = "总量"
+     ws.Range("H1").Value = "单位"
+     ws.Range("I1").Value = "单重(Kg)"
+     ws.Range("J1").Value = "总重(Kg)"
+     ws.Range("K1").Value = "技术条件"
+     ws.Range("L1").Value = "备注"
+     ws.Range("M1").Value = "修改"
+     ws.Range("N1").Value = "材质"
+     ws.Range("O1").Value = "单位表面积m/m2"
+     ws.Range("P1").Value = "零件面积m2"
+    End If
+    Next ws
+    
+    End Sub
+    Sub titiles2()
+    Dim ws As Worksheet
+    
+    For Each ws In ThisWorkbook.Worksheets
+    If ws.Name = "单个支架表" Then
+     ws.Range("A1").Value = "序号"
+     ws.Range("Q1").Value = "单位表面积m/m2"
+     ws.Range("R1").Value = "零件面积m2"
+    End If
+    Next ws
+    
+    End Sub
+    Sub matchspec2()
+ Dim ws1 As Worksheet
+ Dim ws2 As Worksheet
+ Dim lastrow1 As Long
+ Dim lastrow2 As Long
+ Dim i As Long
+ Dim j As Long
+ Dim spec1 As String
+ Dim spec2 As String
+ 
+    Set ws1 = ThisWorkbook.Sheets("单个支架表")
+    Set ws2 = ThisWorkbook.Sheets("材料库")
+    lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+    lastrow2 = ws2.Cells(ws2.Rows.Count, "B").End(xlUp).Row
+    For i = 2 To lastrow1
+      spec1 = ws1.Cells(i, 4).Value & ws1.Cells(i, 5).Value & ws1.Cells(i, 10).Value
+    For j = 2 To lastrow2
+      spec2 = ws2.Cells(j, 2).Value & ws2.Cells(j, 3).Value & ws2.Cells(j, 8).Value
+      If spec1 = spec2 Then
+        ws1.Cells(i, 13).Value = ws1.Cells(i, 16).Value & " " & ws2.Cells(j, 11).Value
+        ws1.Cells(i, 11).Value = ws2.Cells(j, 9).Value
+        ws1.Cells(i, 12).Value = ws1.Cells(i, 11).Value * ws1.Cells(i, 7).Value
+        ws1.Cells(i, 17).Value = ws2.Cells(j, 15).Value
+        ws1.Cells(i, 18).Value = ws2.Cells(j, 15).Value * ws1.Cells(i, 7).Value
+            Exit For
+       End If
+      Next j
+     Next i
+     
+End Sub
+Sub std()
+ Dim ws1 As Worksheet
+ Dim ws2 As Worksheet
+ Dim lastrow1 As Long
+ Dim lastrow2 As Long
+ Dim i As Long
+ Dim j As Long
+ Dim spec1 As String
+ Dim spec2 As String
+ 
+   Set ws1 = ThisWorkbook.Sheets("单个支架表")
+   Set ws2 = ThisWorkbook.Sheets("材料库")
+   lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+   lastrow2 = ws2.Cells(ws2.Rows.Count, "B").End(xlUp).Row
+   For i = 2 To lastrow1
+   For j = 2 To lastrow2
+      If ws1.Cells(i, 13).Value = "" And ws1.Cells(i, 2).Value <> "" Then
+      ws1.Cells(i, 13).Value = ws1.Cells(i, 16).Value & " " & "HG/T 21629"
+             Exit For
+     End If
+    Next j
+   Next i
+   
+ End Sub
+Sub repeat()
+    Dim ws1 As Worksheet
+    Dim rng As Range
+    
+    Set ws1 = ThisWorkbook.Sheets("单个支架表")
+    Set rng = ws1.Range("a:C")
+    i = ws1.Range("a" & Rows.Count).End(xlUp).Row
+    temp1 = rng(2, 1).Value
+    temp2 = rng(2, 2).Value
+    temp3 = rng(2, 3).Value
+    lastrow1 = ws1.Cells(ws1.Rows.Count, "B").End(xlUp).Row
+    For j = 3 To i
+        If rng(j, 1) & rng(j, 2) & rng(j, 3) = temp1 & temp2 & temp3 Then
+            rng(j, 1).ClearContents
+            rng(j, 2).ClearContents
+            rng(j, 3).ClearContents
+        Else
+            temp1 = rng(j, 1)
+            temp2 = rng(j, 2)
+            temp3 = rng(j, 3)
+        End If
+    Next
+    
+End Sub
+  Sub deletezero2()
+    Dim wsSource As Worksheet
+    Dim rng As Range
+    Dim col As Integer
+    Dim lastrow1 As Long
+    
+    col = 7
+    Set wsSource = ThisWorkbook.Sheets("单个支架表")
+    lastrow1 = wsSource.Cells(Rows.Count, col).End(xlUp).Row
+        For i = lastrow1 To 2 Step -1
+            If wsSource.Cells(i, col).Value = "0" Then
+            wsSource.Rows(i).delete
+            End If
+        Next i
+        wsSource.Cells.Replace What:="null", Replacement:="", LookAt:=xlPart, SearchOrder _
+        :=xlByRows, MatchCase:=False, SearchFormat:=False, ReplaceFormat:=False _
+           
+         wsSource.Columns.AutoFit
+         
+    MsgBox "材料统计完成"
+End Sub
+
